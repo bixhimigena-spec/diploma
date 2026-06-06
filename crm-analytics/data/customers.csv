@@ -1,0 +1,16 @@
+customer_id,company_name,city,industry
+C001,AlbaTrade SHPK,Tirane,Retail
+C002,Kondi Distribucion,Durres,Logistics
+C003,Neptun Albania,Tirane,Electronics
+C004,Univers Boja,Fier,Manufacturing
+C005,Balkan E-Commerce,Vlore,E-Commerce
+C006,AgroBlend Shqiperia,Lushnje,Agriculture
+C007,Deka Korce,Korce,FMCG
+C008,Standard Konstruksion,Tirane,Construction
+C009,Era Catering,Elbasan,Hospitality
+C010,Delta Pharma,Durres,Medical
+C011,Plus Kompjutera,Shkodra,Tech
+C012,Lura Turizem,Tirane,Tourism
+C013,Arbria Vetro,Berat,Manufacturing
+C014,Eko Energji,Fier,Energy
+C015,Auto Gjika,Vlore,Automotive
