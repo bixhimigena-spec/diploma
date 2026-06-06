@@ -1,122 +1,174 @@
 import dash
 from dash import dcc, html, dash_table
+from dash.dependencies import Input, Output
 import plotly.express as px
 import pandas as pd
 import sys
 import os
 
-# Konfigurimi i rrugëve që Python të importojë saktë modulin analitik
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# --------------------------------------------------
+# Load analytics module (custom project structure)
+# --------------------------------------------------
+base_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(base_dir, ".."))
+
 from app.analytics import get_rfm_data
 
-# 1. Ngarkojmë të dhënat e analizuara nga K-Means & RFM
+# --------------------------------------------------
+# Load data safely
+# --------------------------------------------------
 try:
     df = get_rfm_data()
-except Exception as e:
-    print(f"Gabim gjatë ekzekutimit të analizës: {e}")
-    df = pd.DataFrame(columns=['customer_id', 'recency', 'frequency', 'monetary', 'segment_name', 'company_name', 'city', 'industry'])
-
-# Inicializojmë aplikacionin Dash
-app = dash.Dash(__name__, title="CRM Analytics Dashboard - TBU")
-
-# 2. Llogaritjet për Panel 1 (Global KPI Summary)
-total_kliente = len(df)
-vlera_mesatare_blerje = df['monetary'].mean() if 'monetary' in df.columns else 0
-frekuenca_mesatare = df['frequency'].mean() if 'frequency' in df.columns else 0
-
-# 3. Grafikët për Panel 2 & 3
-# Grafiku Pie: Shpërndarja e kompanive shqiptare në segmente
-fig_pie = px.pie(
-    df, 
-    names='segment_name', 
-    title="Shpërndarja e Klientëve SME Shqiptare sipas Segmenteve",
-    hole=0.4,
-    color_discrete_sequence=px.colors.qualitative.Pastel
-)
-fig_pie.update_layout(title_x=0.5, font=dict(family="Segoe UI", size=14))
-
-# Grafiku Bar: Të ardhurat totale për çdo segment të llogaritur
-df_revenue = df.groupby('segment_name')['monetary'].sum().reset_index()
-fig_bar = px.bar(
-    df_revenue,
-    x='segment_name',
-    y='monetary',
-    title="Të Ardhurat Totale (Lekë) për çdo Segment RFM",
-    labels={'monetary': 'Totali i Shpenzimeve (Lekë)', 'segment_name': 'Segmenti'},
-    color='segment_name',
-    color_discrete_sequence=px.colors.qualitative.Safe
-)
-fig_bar.update_layout(title_x=0.5, showlegend=False, font=dict(family="Segoe UI", size=14))
-
-# 4. Ndërtimi i pamjes vizuale (Stilimi i faqes me CSS inline)
-app.layout = html.Div(style={'fontFamily': 'Segoe UI, Arial, sans-serif', 'backgroundColor': '#f3f4f6', 'padding': '30px'}, children=[
-    
-    # Banner-i Kryesor (Header)
-    html.Div(style={'backgroundColor': '#1e3a8a', 'color': 'white', 'padding': '25px', 'borderRadius': '12px', 'marginBottom': '30px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.1)'}, children=[
-        html.H1("DASHBOARD ANALITIK I INTEGRUAR CRM", style={'margin': '0', 'fontSize': '30px', 'fontWeight': 'bold', 'textAlign': 'center'}),
-        html.P("Segmentimi Automatik i Klientëve (Modeli RFM & Algoritmi Inteligjent K-Means) — Punim Diplome Master", style={'margin': '8px 0 0 0', 'textAlign': 'center', 'opacity': '0.9', 'fontSize': '16px'})
-    ]),
-    
-    # PANEL 1: Kartat Përmbledhëse të KPI-ve (Global Summary)
-    html.Div(style={'display': 'flex', 'justifyContent': 'space-between', 'marginBottom': '30px', 'gap': '20px'}, children=[
-        html.Div(style={'flex': '1', 'backgroundColor': 'white', 'padding': '25px', 'borderRadius': '12px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.05)', 'textAlign': 'center', 'borderLeft': '6px solid #2563eb'}, children=[
-            html.H3("Totali i Klientëve SME", style={'margin': '0', 'color': '#4b5563', 'fontSize': '16px', 'textTransform': 'uppercase'}),
-            html.H2(f"{total_kliente}", style={'margin': '12px 0 0 0', 'color': '#111827', 'fontSize': '36px', 'fontWeight': 'bold'})
-        ]),
-        html.Div(style={'flex': '1', 'backgroundColor': 'white', 'padding': '25px', 'borderRadius': '12px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.05)', 'textAlign': 'center', 'borderLeft': '6px solid #10b981'}, children=[
-            html.H3("Vlera Vjetore Mesatare (Monetary)", style={'margin': '0', 'color': '#4b5563', 'fontSize': '16px', 'textTransform': 'uppercase'}),
-            html.H2(f"{vlera_mesatare_blerje:,.2f} ALL", style={'margin': '12px 0 0 0', 'color': '#111827', 'fontSize': '30px', 'fontWeight': 'bold'})
-        ]),
-        html.Div(style={'flex': '1', 'backgroundColor': 'white', 'padding': '25px', 'borderRadius': '12px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.05)', 'textAlign': 'center', 'borderLeft': '6px solid #f59e0b'}, children=[
-            html.H3("Frekuenca Mesatare e Blerjeve (F)", style={'margin': '0', 'color': '#4b5563', 'fontSize': '16px', 'textTransform': 'uppercase'}),
-            html.H2(f"{frekuenca_mesatare:.1f} herë / vit", style={'margin': '12px 0 0 0', 'color': '#111827', 'fontSize': '30px', 'fontWeight': 'bold'})
-        ]),
-    ]),
-    
-    # PANEL 2 & 3: Grafikët Vizualë (Shpërndarja dhe të Ardhurat)
-    html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
-        html.Div(style={'flex': '1', 'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '12px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.05)'}, children=[
-            dcc.Graph(figure=fig_pie)
-        ]),
-        html.Div(style={'flex': '1', 'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '12px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.05)'}, children=[
-            dcc.Graph(figure=fig_bar)
-        ]),
-    ]),
-    
-    # PANEL 4: Drill-Down Details (Tabela interaktive me filtrim)
-    html.Div(style={'backgroundColor': 'white', 'padding': '25px', 'borderRadius': '12px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.05)'}, children=[
-        html.H3("Panel i Detajuar: Lista e Bizneseve dhe Segmentet e Caktuara", style={'marginTop': '0', 'marginBottom': '20px', 'color': '#1f2937', 'fontSize': '18px'}),
-        dash_table.DataTable(
-            data=df.to_dict('records'),
-            columns=[
-                {"name": "ID Klienti", "id": "customer_id"},
-                {"name": "Kompania", "id": "company_name"},
-                {"name": "Qyteti", "id": "city"},
-                {"name": "Industria", "id": "industry"},
-                {"name": "Recency (Ditë)", "id": "recency"},
-                {"name": "Frequency (Blerje)", "id": "frequency"},
-                {"name": "Monetary (Lekë)", "id": "monetary"},
-                {"name": "Segmenti RFM", "id": "segment_name"}
-            ],
-            page_size=10,
-            filter_action="native",  # Lejon filtrimin interaktiv nga përdoruesi
-            sort_action="native",    # Lejon renditjen sipas kolonave
-            style_table={'overflowX': 'auto'},
-            style_header={'backgroundColor': '#f9fafb', 'fontWeight': 'bold', 'color': '#374151', 'border': '1px solid #e5e7eb', 'padding': '12px'},
-            style_cell={'padding': '12px', 'textAlign': 'left', 'border': '1px solid #e5e7eb', 'fontSize': '14px', 'color': '#4b5563'},
-            style_data_conditional=[
-                {
-                    'if': {'column_id': 'segment_name', 'filter_query': '{segment_name} contains "VIP"'},
-                    'backgroundColor': '#d1fae5', 'color': '#065f46', 'fontWeight': 'bold'
-                },
-                {
-                    'if': {'column_id': 'segment_name', 'filter_query': '{segment_name} contains "Rrezik"'},
-                    'backgroundColor': '#fee2e2', 'color': '#991b1b', 'fontWeight': 'bold'
-                }
-            ]
-        )
+except Exception as err:
+    print("Error loading RFM data:", err)
+    df = pd.DataFrame(columns=[
+        'customer_id', 'recency', 'frequency', 'monetary',
+        'segment_name', 'company_name', 'city', 'industry'
     ])
-])
 
-if __name__ == '__main__':
-    app.run(debug=True, port=8050)
+# --------------------------------------------------
+# Initialize Dash app
+# --------------------------------------------------
+app = dash.Dash(__name__)
+app.title = "CRM Analytics Dashboard"
+
+# --------------------------------------------------
+# Dropdown options
+# --------------------------------------------------
+def build_options(series):
+    return [{'label': val, 'value': val} for val in sorted(series.dropna().unique())]
+
+segment_options = build_options(df['segment_name'])
+city_options = build_options(df['city'])
+industry_options = build_options(df['industry'])
+
+# --------------------------------------------------
+# Layout
+# --------------------------------------------------
+app.layout = html.Div(
+    style={
+        'fontFamily': 'Segoe UI, sans-serif',
+        'backgroundColor': '#F8F9FA',
+        'padding': '20px'
+    },
+    children=[
+
+        # Header
+        html.Div([
+            html.H2("CRM Analytics Dashboard"),
+            html.P("Customer Segmentation using RFM & K-Means")
+        ], style={'marginBottom': '20px'}),
+
+        # Filters
+        html.Div([
+            dcc.Dropdown(id='seg-filter', options=segment_options, placeholder="Segment"),
+            dcc.Dropdown(id='city-filter', options=city_options, placeholder="City"),
+            dcc.Dropdown(id='industry-filter', options=industry_options, placeholder="Industry"),
+            html.Button("Reset", id='reset-btn', n_clicks=0)
+        ], style={'display': 'flex', 'gap': '10px', 'marginBottom': '20px'}),
+
+        # KPIs
+        html.Div([
+            html.Div([html.H4("Customers"), html.H2(id='kpi-customers')]),
+            html.Div([html.H4("Avg Monetary"), html.H2(id='kpi-monetary')]),
+            html.Div([html.H4("Avg Frequency"), html.H2(id='kpi-frequency')]),
+        ], style={'display': 'flex', 'justifyContent': 'space-between'}),
+
+        # Charts
+        html.Div([
+            dcc.Graph(id='pie-chart'),
+            dcc.Graph(id='bar-chart')
+        ], style={'display': 'flex'}),
+
+        dcc.Graph(id='scatter-3d'),
+
+        # Table
+        dash_table.DataTable(
+            id='table',
+            page_size=10,
+            filter_action="native",
+            sort_action="native",
+            columns=[{"name": col, "id": col} for col in df.columns]
+        )
+    ]
+)
+
+# --------------------------------------------------
+# Reset filters
+# --------------------------------------------------
+@app.callback(
+    [Output('seg-filter', 'value'),
+     Output('city-filter', 'value'),
+     Output('industry-filter', 'value')],
+    Input('reset-btn', 'n_clicks')
+)
+def reset_filters(n):
+    if n and n > 0:
+        return None, None, None
+    return dash.no_update, dash.no_update, dash.no_update
+
+# --------------------------------------------------
+# Update dashboard
+# --------------------------------------------------
+@app.callback(
+    [
+        Output('kpi-customers', 'children'),
+        Output('kpi-monetary', 'children'),
+        Output('kpi-frequency', 'children'),
+        Output('pie-chart', 'figure'),
+        Output('bar-chart', 'figure'),
+        Output('scatter-3d', 'figure'),
+        Output('table', 'data')
+    ],
+    [
+        Input('seg-filter', 'value'),
+        Input('city-filter', 'value'),
+        Input('industry-filter', 'value')
+    ]
+)
+def update_dashboard(seg, city, industry):
+    dff = df.copy()
+
+    # Apply filters
+    if seg:
+        dff = dff[dff['segment_name'] == seg]
+    if city:
+        dff = dff[dff['city'] == city]
+    if industry:
+        dff = dff[dff['industry'] == industry]
+
+    # KPIs
+    total = len(dff)
+    avg_monetary = f"{dff['monetary'].mean():.2f}" if total else "0"
+    avg_frequency = f"{dff['frequency'].mean():.1f}" if total else "0"
+
+    # Pie chart
+    pie_fig = px.pie(dff, names='segment_name', hole=0.3)
+
+    # Bar chart
+    revenue = dff.groupby('segment_name')['monetary'].sum().reset_index()
+    bar_fig = px.bar(revenue, x='segment_name', y='monetary')
+
+    # 3D scatter
+    scatter_fig = px.scatter_3d(
+        dff,
+        x='recency',
+        y='frequency',
+        z='monetary',
+        color='segment_name',
+        hover_name='company_name'
+    )
+
+    return (
+        str(total),
+        avg_monetary,
+        avg_frequency,
+        pie_fig,
+        bar_fig,
+        scatter_fig,
+        dff.to_dict('records')
+    )
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

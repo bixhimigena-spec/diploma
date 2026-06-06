@@ -1,52 +1,49 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.analytics import get_rfm_data
 
-# Inicializimi i aplikacionit FastAPI
+
 app = FastAPI(
-    title="CRM Data Analytics API",
-    description="API e prototipit të diplomës për segmentimin e klientëve SME shqiptare",
+    title="CRM Analytics API",
+    description="Backend API për analizën dhe segmentimin e klientëve SME.",
     version="1.0.0"
 )
 
-# Konfigurimi i CORS (Lejon frontend-in tonë të komunikojë me backend-in pa u bllokuar)
+
+# CORS configuration
+# For development we allow all origins. In production this should be restricted.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Në prodhim vendoset URL specifike, por për prototip lejohet çdo gjë
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 @app.get("/")
-def read_root():
-    """Faqja e thjeshtë e mirëseardhjes në API"""
+def home():
     return {
         "status": "online",
-        "mesazhi": "Mirëseerdhët në API-në e Sistemit CRM Analytics!",
-        "universiteti": "Tirana Business University"
+        "message": "CRM Analytics API is running",
+        "project": "Customer segmentation using RFM and K-Means"
     }
 
+
 @app.get("/api/rfm-data")
-def get_rfm_results():
-    """
-    Ky endpoint thërret motorrin analitik, ekzekuton modelin K-Means
-    mbi të dhënat e freskëta dhe i kthen ato në format JSON për Dashboard-in.
-    """
+def rfm_data():
     try:
-        # Thërrasim funksionin që krijuam në Hapun 3
-        df_rezultati = get_rfm_data()
-        
-        # Konvertojmë DataFrame e Pandas në format standard JSON (Listë me fjalorë)
-        te_dhenat_json = df_rezultati.to_dict(orient='records')
-        
+        result = get_rfm_data()
+
         return {
-            "status": "sukses",
-            "total_kliente": len(df_rezultati),
-            "data": te_dhenat_json
+            "status": "success",
+            "total_customers": len(result),
+            "data": result.to_dict(orient="records")
         }
-    except Exception as e:
-        return {
-            "status": "gabim",
-            "mesazhi": f"Ndodhi një gabim gjatë procesimit: {str(e)}"
-        }
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not process RFM data: {error}"
+        )
