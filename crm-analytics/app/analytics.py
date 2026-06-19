@@ -10,28 +10,18 @@ from sklearn.preprocessing import StandardScaler
 
 
 def load_retail_files():
-    """Try to load the two retail files (CSV or Excel) from ./data/."""
-    paths = {
-        "csv1": "data/online_retail_09_10.csv",
-        "csv2": "data/online_retail_10_11.csv",
-        "xlsx1": "data/online_retail_09_10.xlsx",
-        "xlsx2": "data/online_retail_10_11.xlsx",
-    }
+    """Load the single retail file from ./data/."""
+    file_path = "data/Online Retail.xlsx"
 
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Skedari nuk u gjet: {file_path}")
+        
     try:
-        if os.path.exists(paths["csv1"]) and os.path.exists(paths["csv2"]):
-            a = pd.read_csv(paths["csv1"], encoding="ISO-8859-1")
-            b = pd.read_csv(paths["csv2"], encoding="ISO-8859-1")
-        elif os.path.exists(paths["xlsx1"]) and os.path.exists(paths["xlsx2"]):
-            a = pd.read_excel(paths["xlsx1"])
-            b = pd.read_excel(paths["xlsx2"])
-        else:
-            raise FileNotFoundError("Files not found in data/ directory.")
-    except Exception:
-        raise
-
-    return a, b
-
+        # Lexojmë skedarin e vetëm
+        df = pd.read_excel(file_path)
+        return df
+    except Exception as e:
+        raise RuntimeError(f"Pati një problem gjatë leximit të skedarit: {e}")
 
 def normalize_column_names(df):
     """Map common column name variants to a small set of expected names."""
@@ -159,12 +149,13 @@ def assign_segments(rfm_df, n_clusters=4):
 def get_rfm_data():
     """Main entry point: load data, compute RFM, add local metadata and segments."""
     try:
-        a, b = load_retail_files()
+        # Tani marrim vetëm NJË variabël (df), jo a, b
+        df = load_retail_files()
     except Exception as e:
         print("Gabim: nuk mund të ngarkohen skedarët. Kontrolloni data/ dhe emrat e skedarëve.")
         raise
 
-    df = pd.concat([a, b], ignore_index=True)
+    # KËTU KEMI HEQUR rreshtin e vjetër: df = pd.concat([a, b], ignore_index=True)
 
     # normalize column names and check required fields
     df = normalize_column_names(df)
